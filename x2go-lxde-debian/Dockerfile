@@ -119,7 +119,7 @@ RUN useradd -m docker \
 #     \n\
 #     /usr/sbin/sshd -D' > /root/start-sshd.sh
 
-# Startup script - B - (you may be automting docker) - imports an SSH key from an environmental variable
+# Startup script - B - (you may be automating docker) - imports an SSH key from an environmental variable
 RUN echo '#!/bin/sh \n\
     echo $SSH_PUBLIC_KEY > /home/docker/.ssh/authorized_keys \n\
     /usr/sbin/sshd -D' > /root/start-sshd.sh
