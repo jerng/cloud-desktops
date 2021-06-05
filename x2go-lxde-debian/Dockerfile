@@ -3,7 +3,12 @@ FROM debian:buster
 LABEL "author"="jerng" \
       "approximate_date_modified"="2021-06" \
       "based_on"="https://github.com/tatsuya6502/docker-x2go" \
-      "tested_on"="localhost; AWS S3 > CodeBuild > Elastic Container Repository > Fargate" \
+      "architecture"="amd64" \
+      "tested_on"="localhost; \
+AWS S3 > CodeBuild > Elastic Container Repository > Fargate" \
+      "security_advice"="This build is not secure; use it at your own \
+risk; you may begin by taking further advice from AWS ECR's free scanning \
+service." \
       "comment"="X2Go uses the NX3 protocol which seems to deliver choppy \
 audio via PulseAudio when the server is hosted on a public cloud, and \
 the client is far away, whereas it is open-source; NoMachine uses the \
