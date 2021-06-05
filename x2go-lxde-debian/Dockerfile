@@ -16,7 +16,8 @@ service." \
 audio via PulseAudio when the server is hosted on a public cloud, and \
 the client is far away, whereas it is open-source; NoMachine uses the \
 NX4 protocol which seems to deliver smooth audio under similar \
-infrastructure, whereas it is freemium" 
+infrastructure, whereas it is freemium" \
+      "public_repository"="https://hub.docker.com/r/jerng/x2go-lxde-debian"
 
 ENV DEBIAN_FRONTEND noninteractive
 
