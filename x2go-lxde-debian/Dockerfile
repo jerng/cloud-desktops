@@ -1,10 +1,13 @@
 FROM debian:buster 
 
 LABEL "author"="jerng" \
-      "approximate_date_modified"="2021-06" \
-      "based_on"="https://github.com/tatsuya6502/docker-x2go" \
       "architecture"="amd64" \
-      "tested_on"="localhost; \
+      "approximate_date_modified"="2021-06" \
+      "purpose_of_this_image"="Runs a Linux Desktop Server which you can \
+connect to remotely, via a network." \
+      "based_on"="https://github.com/tatsuya6502/docker-x2go" \
+      "core_technologies_used"="linux (debian), lxde, x2go" \
+      "tested_on_infrastructures"="localhost; \
 AWS S3 > CodeBuild > Elastic Container Repository > Fargate" \
       "security_advice"="This build is not secure; use it at your own \
 risk; you may begin by taking further advice from AWS ECR's free scanning \
