@@ -1,0 +1,21 @@
+version: 0.2
+
+# WARNING : "docker login" will fail with message
+#             "cannot perform an interactive login from a non TTY device docker"
+#             if IAM is not set up properly for ECR
+
+phases:
+  pre_build:
+    commands:
+  build:
+    commands:
+       - /bin/bash -c "docker login -u $DOCKER_HUB_USER --password-stdin <<< $DOCKER_HUB_PASSWORD"
+       - docker build --tag=$IMAGE_REPO_NAME:$IMAGE_TAG .
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image...
+      - docker tag $IMAGE_REPO_NAME:$IMAGE_TAG $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$IMAGE_REPO_NAME:$IMAGE_TAG

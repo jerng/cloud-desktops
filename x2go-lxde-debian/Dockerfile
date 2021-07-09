@@ -1,4 +1,4 @@
-FROM debian:buster 
+FROM debian:10.10 
 
 LABEL "author"="jerng" \
       "architecture"="amd64" \
