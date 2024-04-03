@@ -1,10 +1,22 @@
-FROM debian:10.10 
+FROM debian:12-slim
 
-# Special Note when deploying on ...
+# Special Notes when deploying on ...
+
+    # localhost
+    #
+    #   1. You may run the image with (docker run -p 220:22 IMAGE_NAME), where
+    #       localhost:220 will be mapped to (container:22).
+    #
+    #   2. When run as above, the container will print to stdout an ssh private
+    #       key, which you have to save somewhere. Point the x2go client at this
+    #       private key file for authentication to (localhost:220).
+
     # AWS ECS / Amazon Web Services : Elastic Container Service
     #
-    #   You can't just slug an image into deployment.
-    #   Instead you have to configure :
+    #   1. Build the image with startup script (B), comment out (A). 
+    #
+    #   2. You can't just slug an image into deployment.
+    #       Instead you have to configure :
     #
     #   ECS > Cluster > Task > Task Definition > Run Task
     #
@@ -19,6 +31,11 @@ FROM debian:10.10
     #           ( See $SSH_PUBLIC_KEY below )
     #       - must set (Networking > Security Group > allow port 22 in for SSH )
     #       
+    #   Set the Environment Variable $SSH_PUBLIC_KEY to your thin client's .pub    
+    #       
+    #   Set your thin client's x2go-client to login with 
+    #   - user (docker)    
+    #   - LXDE window manager    
 
 LABEL "author"="jerng" \
       "architecture"="amd64" \
@@ -75,9 +92,11 @@ RUN mv /usr/bin/lxpolkit /usr/bin/lxpolkit.ORIG
 RUN apt upgrade -y
 
 # Install X2Go server components
-RUN apt-key adv --recv-keys --keyserver keys.gnupg.net E1F958385BFE2B6E \
-    && sed -i '1s/^/deb http:\/\/packages.x2go.org\/debian stretch extras main\n/' /etc/apt/sources.list \
-    && sed -i '1s/^/deb-src http:\/\/packages.x2go.org\/debian stretch extras main\n/' /etc/apt/sources.list \
+RUN apt-key adv --recv-keys --keyserver keyserver.ubuntu.com E1F958385BFE2B6E \
+#    && sed -i '1s/^/deb http:\/\/packages.x2go.org\/debian buster extras main\n/' /etc/apt/sources.list \
+#    && sed -i '1s/^/deb-src http:\/\/packages.x2go.org\/debian buster extras main\n/' /etc/apt/sources.list \
+    && echo 'deb http:\/\/packages.x2go.org\/debian buster extras main\n\
+                deb-src http:\/\/packages.x2go.org\/debian buster extras main' > /etc/apt/sources.list \
     && apt update -y \
     && apt install -y x2goserver x2goserver-xsession --no-install-recommends
 
@@ -125,28 +144,28 @@ RUN useradd -m docker \
     #
     # Create ssh "client" key\n\
     # http://stackoverflow.com/a/20977657\n\
-# RUN echo '#!/bin/sh\n\
-#     \n\
-#     \n\
-#     USER_HOME=/home/docker\n\
-#     \n\
-#     KEYGEN=/usr/bin/ssh-keygen\n\
-#     KEYFILE=${USER_HOME}/.ssh/id_rsa\n\
-#     \n\
-#     if [ ! -f $KEYFILE ]; then\n\
-#         $KEYGEN -q -t rsa -N "" -f $KEYFILE\n\
-#         cat $KEYFILE.pub >> ${USER_HOME}/.ssh/authorized_keys\n\
-#     fi\n\
-#     \n\
-#     echo "== Use this private key to log in =="\n\
-#     cat $KEYFILE\n\
-#     \n\
-#     /usr/sbin/sshd -D' > /root/start-sshd.sh
+RUN echo '#!/bin/sh\n\
+    \n\
+    \n\
+    USER_HOME=/home/docker\n\
+    \n\
+    KEYGEN=/usr/bin/ssh-keygen\n\
+    KEYFILE=${USER_HOME}/.ssh/id_rsa\n\
+    \n\
+    if [ ! -f $KEYFILE ]; then\n\
+        $KEYGEN -q -t rsa -N "" -f $KEYFILE\n\
+        cat $KEYFILE.pub >> ${USER_HOME}/.ssh/authorized_keys\n\
+    fi\n\
+    \n\
+    echo "== Use this private key to log in =="\n\
+    cat $KEYFILE\n\
+    \n\
+    /usr/sbin/sshd -D' > /root/start-sshd.sh
 
 # Startup script - B - (you may be automating docker) - imports an SSH key from an environmental variable
-RUN echo '#!/bin/sh \n\
-    echo $SSH_PUBLIC_KEY > /home/docker/.ssh/authorized_keys \n\
-    /usr/sbin/sshd -D' > /root/start-sshd.sh
+#RUN echo '#!/bin/sh \n\
+#    echo $SSH_PUBLIC_KEY > /home/docker/.ssh/authorized_keys \n\
+#    /usr/sbin/sshd -D' > /root/start-sshd.sh
 
 # Mode the startup script
 RUN chmod 744 /root/start-sshd.sh
