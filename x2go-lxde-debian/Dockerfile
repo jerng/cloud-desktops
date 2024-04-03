@@ -76,6 +76,10 @@ RUN apt install -y \
         lxde lxde-common \
             # for window manager
             #
+            #   2024-04-04 :    
+            #   - lxqt was not stable
+            #   - enlightenment was not in the x2go-client presets
+            #
         dirmngr gnupg \
             # for apt-key for (x2go) 
             #
