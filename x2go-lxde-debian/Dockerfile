@@ -1,5 +1,25 @@
 FROM debian:10.10 
 
+# Special Note when deploying on ...
+    # AWS ECS / Amazon Web Services : Elastic Container Service
+    #
+    #   You can't just slug an image into deployment.
+    #   Instead you have to configure :
+    #
+    #   ECS > Cluster > Task > Task Definition > Run Task
+    #
+    #       Under (Task Definition), you :
+    #       - must set (Image URI)
+    #       - may set (Environment variabless)
+    #           ( See $SSH_PUBLIC_KEY below )
+    #
+    #       Under (Run Task), you :
+    #       - may set (Capacity Provider Strategy > Fargate Spot)
+    #       - may set (Container overrides > enviroment variables)
+    #           ( See $SSH_PUBLIC_KEY below )
+    #       - must set (Networking > Security Group > allow port 22 in for SSH )
+    #       
+
 LABEL "author"="jerng" \
       "architecture"="amd64" \
       "approximate_date_modified"="2021-06" \
