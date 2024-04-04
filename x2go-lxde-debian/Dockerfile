@@ -83,11 +83,12 @@ RUN apt install -y \
         dirmngr gnupg \
             # for apt-key for (x2go) 
             #
-        wget \
+        wget
             # for (google-chrome)
             #
-    && apt remove -y firefox-esr
-        # redundant
+#     && apt remove -y firefox-esr
+#         # redundant - however Chrome is crashy at Version 123.0.6312.105
+#         # (Official Build) (64-bit) ... try again later, meanwhile use firefox
 
 # Decrunking (crunk : you get an "Error: No session for pid NNN" on LXDE startup)
 RUN mv /usr/bin/lxpolkit /usr/bin/lxpolkit.ORIG
@@ -97,21 +98,27 @@ RUN apt upgrade -y
 
 # Install X2Go server components
 RUN apt-key adv --recv-keys --keyserver keyserver.ubuntu.com E1F958385BFE2B6E \
+
+# Use this for Debian 10.10 : comment out the two lines below
 #    && sed -i '1s/^/deb http:\/\/packages.x2go.org\/debian buster extras main\n/' /etc/apt/sources.list \
 #    && sed -i '1s/^/deb-src http:\/\/packages.x2go.org\/debian buster extras main\n/' /etc/apt/sources.list \
+
+# Use these two lines for Debian 12 : comment out the two lines above
     && echo 'deb http:\/\/packages.x2go.org\/debian buster extras main\n\
-                deb-src http:\/\/packages.x2go.org\/debian buster extras main' > /etc/apt/sources.list \
+             deb-src http:\/\/packages.x2go.org\/debian buster extras main' > /etc/apt/sources.list \
+
+# Use the following lines regardless of Debian version 
     && apt update -y \
     && apt install -y x2goserver x2goserver-xsession --no-install-recommends
 
-# If you are on arm64, use (chromium) instead of (google-chrome)
-RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
-    && apt install -y ./google-chrome-stable_current_amd64.deb \
-    && rm ./google-chrome-stable_current_amd64.deb \
-        #
-    && sed -i 's/exec -a "$0" "$HERE\/chrome" "$@"/exec -a "$0" "$HERE\/google-chrome-stable" "$@" --no-sandbox/' /usr/bin/google-chrome \
-    && sed -i 's/google-chrome-stable %U/google-chrome-stable %U --no-sandbox/' /usr/share/applications/google-chrome.desktop 
-        # Decrunking (crunk: chromium, or google-chrome, won't start)
+# # If you are on arm64, use (chromium) instead of (google-chrome)
+# RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
+#     && apt install -y ./google-chrome-stable_current_amd64.deb \
+#     && rm ./google-chrome-stable_current_amd64.deb \
+#         #
+#     && sed -i 's/exec -a "$0" "$HERE\/chrome" "$@"/exec -a "$0" "$HERE\/google-chrome-stable" "$@" --no-sandbox/' /usr/bin/google-chrome \
+#     && sed -i 's/google-chrome-stable %U/google-chrome-stable %U --no-sandbox/' /usr/share/applications/google-chrome.desktop 
+#         # Decrunking (crunk: chromium, or google-chrome, won't start)
 
 # Configure SSH
 RUN mkdir -p /var/run/sshd \
@@ -259,7 +266,6 @@ RUN usermod --shell /bin/bash docker \
         . /etc/bash_completion\n\
       fi\n\
     fi" > /home/docker/.bashrc
-
 
 EXPOSE 22
 ENTRYPOINT ["/root/start-sshd.sh"]
