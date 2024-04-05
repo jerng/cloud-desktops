@@ -2,7 +2,7 @@ FROM debian:12-slim
 
 # Special Notes when deploying on ...
 
-    # localhost
+    #### localhost
     #
     #   1. You may run the image with (docker run -p 220:22 IMAGE_NAME), where
     #       localhost:220 will be mapped to (container:22).
@@ -11,7 +11,7 @@ FROM debian:12-slim
     #       key, which you have to save somewhere. Point the x2go client at this
     #       private key file for authentication to (localhost:220).
 
-    # AWS ECS / Amazon Web Services : Elastic Container Service
+    #### AWS ECS / Amazon Web Services : Elastic Container Service
     #
     #   1. Build the image with startup script (B), comment out (A). 
     #
@@ -36,6 +36,11 @@ FROM debian:12-slim
     #   Set your thin client's x2go-client to login with 
     #   - user (docker)    
     #   - LXDE window manager    
+
+# Further interest :
+
+    #   Kdrive : alternative to NXv3 protocol
+    #       https://sunweavers.net/blog/node/136
 
 LABEL "author"="jerng" \
       "architecture"="amd64" \
