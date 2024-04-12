@@ -1,0 +1,187 @@
+FROM alpine:3.19 # Update repos
+# Install requirements
+# Upgrade packages
+RUN apk update 
+RUN apk --no-cache add  \
+            #
+        # -- remove
+        # software-properties-common apt-utils \
+            # for apt
+            #
+        htop nload vim screen \
+            # for admin
+            #
+        doas openssh-server  \
+            # for ssh
+            #
+        lxqt-desktop lximage-qt obconf-qt pavucontrol-qt screengrab \
+        arandr sddm \
+            # for window manager
+            #
+        # -- remove
+        # dirmngr gnupg \
+            # for apt-key for (x2go) 
+            #
+        # -- remove
+        # wget \
+            # for (google-chrome)
+            #
+        x2goserver \
+            #
+            #
+    && apk --no-cache upgrade \
+    && apk cache clean \
+    && rm -rf /var/cache/apk/*
+
+# Configure SSH
+# RUN mkdir -p /var/run/sshd \
+#     && sed -ri 's/UseDNS yes/#UseDNS yes/g' /etc/ssh/sshd_config\
+#     && printf "UseDNS no" >> /etc/ssh/sshd_config \
+#     #     && sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config \
+#     #     && sed -ri 's/#UsePAM no/UsePAM no/g' /etc/ssh/sshd_config \
+#     && sed -i "s/.*RSAAuthentication.*/RSAAuthentication yes/g" /etc/ssh/sshd_config \
+#     && sed -i "s/.*PubkeyAuthentication.*/PubkeyAuthentication yes/g" /etc/ssh/sshd_config \
+#     && sed -i "s/.*PasswordAuthentication.*/PasswordAuthentication no/g" /etc/ssh/sshd_config \
+#     && sed -i "s/.*AuthorizedKeysFile.*/AuthorizedKeysFile\t\.ssh\/authorized_keys/g" /etc/ssh/sshd_config \
+#     && sed -i "s/.*PermitRootLogin.*/PermitRootLogin no/g" /etc/ssh/sshd_config \
+#     && ssh-keygen -A
+RUN ssh-keygen -A \
+    && printf "PasswordAuthentication no\\n" >> /etc/ssh/sshd_config
+
+
+# Create a user, with (doas -u root) access
+# RUN useadd -m docker \
+#     && mkdir -p /home/docker/.ssh \
+#     && chmod 700 /home/docker/.ssh \
+#     && chown docker:docker /home/docker/.ssh \
+#     && mkdir -p /etc/sudoers.d \
+#     && printf "docker ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+RUN adduser -D docker \
+    && addgroup docker wheel \
+    && printf "permit nopass :wheel as root\\n" >> /etc/doas.d/doas.conf
+    # doas.conf lines must end with a linebreak, otherwise errors happen
+
+# Startup script - A - (you may be operating docker manually) - generates a key on "docker run" which can be printed with "docker logs CONTAINER_NAME"
+    #
+    # Create ssh "client" key\n\
+    # http://stackoverflow.com/a/20977657\n\
+RUN <<EOF
+printf "#!/bin/sh
+    
+    USER_HOME=/home/docker
+    KEYGEN=/usr/bin/ssh-keygen
+    KEYFILE=\${USER_HOME}/.ssh/id_rsa
+    
+    printf \"USER_HOME : \${USER_HOME}\\\\n\"
+    printf \"KEYGEN : \${KEYGEN}\\\\n\"
+    printf \"KEYFILE : \${KEYFILE}\\\\n\"
+    
+    if [ ! -f \${KEYFILE} ]; then
+        printf \"... condition met, attempting branch logic ...\\\\n\"
+        mkdir \${USER_HOME}/.ssh
+        \${KEYGEN} -q -t rsa -N \"\" -f \${KEYFILE}
+        cat \${KEYFILE}.pub >> \${USER_HOME}/.ssh/authorized_keys
+    fi
+    
+    printf \"== Use this private key to log in ==\\\\n\"
+    cat \${KEYFILE}
+    
+    /usr/sbin/sshd -D" > /root/start-sshd.sh
+EOF
+
+# Startup script - B - (you may be automating docker) - imports an SSH key from an environmental variable
+#RUN printf '#!/bin/sh \n\
+#    printf $SSH_PUBLIC_KEY > /home/docker/.ssh/authorized_keys \n\
+#    /usr/sbin/sshd -D' > /root/start-sshd.sh
+
+# Mode the startup script
+RUN chmod 744 /root/start-sshd.sh
+
+# Set time
+RUN ln -sf /usr/share/zoneinfo/Asia/Kuala_Lumpur /etc/localtime
+
+# Set .bashrc for stylistic preferences
+RUN usermod --shell /bin/bash docker \
+    && printf "export PATH=\"\$HOME:\$PATH\"\n\
+\n\
+\n\
+    case \$- in\n\
+        *i*) ;;\n\
+          *) return;;\n\
+    esac\n\
+\n\
+    HISTCONTROL=ignoreboth\n\
+\n\
+    shopt -s histappend\n\
+\n\
+    HISTSIZE=1000\n\
+    HISTFILESIZE=2000\n\
+\n\
+    shopt -s checkwinsize\n\
+\n\
+\n\
+    [ -x /usr/bin/lesspipe ] && eval \"\$(SHELL=/bin/sh lesspipe)\"\n\
+\n\
+    if [ -z \"\${debian_chroot:-}\" ] && [ -r /etc/debian_chroot ]; then\n\
+        debian_chroot=\$(cat /etc/debian_chroot)\n\
+    fi\n\
+\n\
+    case \"\$TERM\" in\n\
+        xterm-color|*-256color) color_prompt=yes;;\n\
+    esac\n\
+\n\
+\n\
+    if [ -n \"\$force_color_prompt\" ]; then\n\
+        if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then\n\
+        color_prompt=yes\n\
+        else\n\
+        color_prompt=\n\
+        fi\n\
+    fi\n\
+\n\
+    if [ \"\$color_prompt\" = yes ]; then\n\
+        PS1='\${debian_chroot:+(\$debian_chroot)}\[\033[07;32m\]\n[\d \t] \u@\h\[\033[00m\]:\[\033[07;34m\]\w\[\033[00m\]\n\\$ '\n\
+    else\n\
+        PS1='\${debian_chroot:+(\$debian_chroot)}\u@\h:\w\\$ '\n\
+    fi\n\
+    unset color_prompt force_color_prompt\n\
+\n\
+    case \"\$TERM\" in\n\
+    xterm*|rxvt*)\n\
+        PS1=\"\[\e]0;\${debian_chroot:+(\$debian_chroot)}\u@\h: \w\a\]\$PS1\"\n\
+        ;;\n\
+    *)\n\
+        ;;\n\
+    esac\n\
+\n\
+    if [ -x /usr/bin/dircolors ]; then\n\
+        test -r ~/.dircolors && eval \"\$(dircolors -b ~/.dircolors)\" || eval \"\$(dircolors -b)\"\n\
+        alias ls='ls --color=auto'\n\
+\n\
+        alias grep='grep --color=auto'\n\
+        alias fgrep='fgrep --color=auto'\n\
+        alias egrep='egrep --color=auto'\n\
+    fi\n\
+\n\
+\n\
+    alias ll='ls -alF'\n\
+    alias la='ls -A'\n\
+    alias l='ls -CF'\n\
+\n\
+    alias alert='notify-send --urgency=low -i \"\$([ \$? = 0 ] && echo terminal || echo error)\" \"\$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert\$//'\'')\"'\n\
+\n\
+\n\
+    if [ -f ~/.bash_aliases ]; then\n\
+        . ~/.bash_aliases\n\
+    fi\n\
+\n\
+    if ! shopt -oq posix; then\n\
+      if [ -f /usr/share/bash-completion/bash_completion ]; then\n\
+        . /usr/share/bash-completion/bash_completion\n\
+      elif [ -f /etc/bash_completion ]; then\n\
+        . /etc/bash_completion\n\
+      fi\n\
+    fi" > /home/docker/.bashrc
+
+EXPOSE 22
+ENTRYPOINT ["/root/start-sshd.sh"]
